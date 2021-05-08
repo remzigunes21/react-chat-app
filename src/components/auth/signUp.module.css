@@ -1,0 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Lobster&display=swap");
+
+.container {
+  height: 100vh;
+  background: url("../../images/bg-signup.png");
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.formHeader {
+  font-family: "Lobster", cursive;
+  font-size: 52px;
+  background: #a2ff7d;
+  background: -webkit-linear-gradient(to right, rgb(18, 21, 192), #84f01f);
+  background: linear-gradient(to right, rgb(236, 8, 160), #33f79c);
+  -webkit-background-clip: text; /*sadece text alanı etkilensin */
+  -webkit-text-fill-color: transparent;
+}
+.formHeader span {
+  -webkit-text-fill-color: #ffffff;
+}
