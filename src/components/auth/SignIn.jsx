@@ -1,16 +1,38 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useFirebase } from "react-redux-firebase";
+
 import { Grid, Segment, Form, Button, Message } from "semantic-ui-react";
 import styles from "./signIn.module.css";
 import { useForm } from "react-hook-form";
 
 const SignIn = (props) => {
+  const firebase = useFirebase();
+  const [fbErrors, setFbErrors] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const onSubmit = (e) => {
     e.preventDefault();
+    setLoading(true);
+    setFbErrors([]);
     console.log(`Submitting Name ${email}`);
     console.log(`Submitting Name ${password}`);
+    firebase
+      .login({
+        email,
+        password,
+      })
+      .then((user) => {
+        console.log("login", user);
+      })
+      .catch((e) => {
+        setFbErrors([{ message: e.message }]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleChangeEmail = (e) => {
@@ -19,6 +41,8 @@ const SignIn = (props) => {
   const handleChangePassword = (e) => {
     setPassword(e.target.value);
   };
+  const displayErrors = () =>
+    fbErrors.map((item, index) => <p key={index}>{item.message}</p>);
 
   return (
     <Grid
@@ -51,11 +75,13 @@ const SignIn = (props) => {
               type="password"
             />
 
-            <Button fluid size="large" color="olive">
+            <Button fluid size="large" color="olive" disabled={loading}>
               Giriş Yap
             </Button>
           </Segment>
         </Form>
+        {fbErrors.length > 0 && <Message error>{displayErrors()}</Message>}
+
         <Message>
           Yeni misin?<Link to="/register">Hesap Oluştur</Link>
         </Message>

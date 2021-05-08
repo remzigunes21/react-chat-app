@@ -16,6 +16,7 @@ import {
 import App from "./App";
 import SignUp from "./components/auth/SignUp";
 
+import PrivateRoute from "./components/auth/PrivateRoute";
 import SignIn from "./components/auth/SignIn";
 
 const rrfProps = {
@@ -27,21 +28,34 @@ const rrfProps = {
 };
 
 const Root = () => {
+  const history = useHistory();
+  useEffect(() => {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        history.push("/");
+      } else {
+        history.push("/login");
+      }
+    });
+  }, []);
   return (
-    <>
-      <Router>
-        <Switch>
-          <Route exact path="/" component={App} />
-          <Route path="/login" component={SignIn} />
-          <Route path="/register" component={SignUp} />
-        </Switch>
-      </Router>
-    </>
+    <Switch>
+      <PrivateRoute exact path="/">
+        <App />
+      </PrivateRoute>
+      <Route path="/login" component={SignIn} />
+      <Route path="/signup" component={SignUp} />
+    </Switch>
   );
 };
 
-ReactDOM.render(<Root />, document.getElementById("root"));
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+ReactDOM.render(
+  <Provider store={store}>
+    <ReactReduxFirebaseProvider {...rrfProps}>
+      <Router>
+        <Root />
+      </Router>
+    </ReactReduxFirebaseProvider>
+  </Provider>,
+  document.getElementById("root")
+);

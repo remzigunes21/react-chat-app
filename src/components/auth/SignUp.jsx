@@ -1,20 +1,47 @@
 import React, { useState } from "react";
+import { useFirebase } from "react-redux-firebase";
 import { Link } from "react-router-dom";
 import { Grid, Segment, Form, Button, Message } from "semantic-ui-react";
 import styles from "./signUp.module.css";
 
 const SignUp = (props) => {
+  const firebase = useFirebase();
+  const [fbErrors, setFbErrors] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const onSubmit = (e, data) => {
+    setLoading(true);
+    setFbErrors([]);
     console.log("~ data", data);
 
+    console.log(username, password, email);
+    const [first, last] = username.split(" ");
+    firebase
+      .createUser(
+        { email: email, password: password },
+        {
+          name: username,
+          avatar: `https://ui-avatars.com/api/?name=${first}+${last}&background=random`,
+        }
+      )
+      .then((user) => {
+        console.log("ussss", user);
+      })
+      .catch((e) => {
+        setFbErrors([{ message: e.message }]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
     e.preventDefault();
-    console.log(`Submitting Name ${username}`);
-    console.log(`Submitting Name ${email}`);
-    console.log(`Submitting Name ${password}`);
   };
+
+  const displayErrors = () =>
+    fbErrors.map((item, index) => <p key={index}>{item.message}</p>);
 
   const handleChangeUser = (e) => {
     setUsername(e.target.value);
@@ -67,11 +94,12 @@ const SignUp = (props) => {
               type="password"
             />
 
-            <Button fluid size="large" color="olive">
+            <Button fluid size="large" color="olive" disabled={loading}>
               Kaydol
             </Button>
           </Segment>
         </Form>
+        {fbErrors.length > 0 && <Message error>{displayErrors()}</Message>}
         <Message>
           Zaten bir haesabınız var mı?<Link to="/login">Giriş Yap</Link>
         </Message>
