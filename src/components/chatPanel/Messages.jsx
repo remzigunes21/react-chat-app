@@ -4,7 +4,7 @@ import { Comment, Image } from "semantic-ui-react";
 import styles from "./message.module.css";
 
 const Messages = ({ message }) => {
-  console.log("🚀 ~ file: Messages.jsx ~ line 7 ~ Messages ~ message", message);
+  const isMedia = (message) => message.hasOwnProperty("image");
   const timeFromTimestamp = (value) => moment(value).fromNow();
   return (
     <Comment>
@@ -14,10 +14,11 @@ const Messages = ({ message }) => {
         <Comment.Metadata>
           <div>{timeFromTimestamp(message.timestamp)}</div>
         </Comment.Metadata>
-        <Comment.Text>{message.content}</Comment.Text>
-        <Comment.Actions>
-          <Comment.Action>Reply</Comment.Action>
-        </Comment.Actions>
+        {isMedia(message) ? (
+          <Image src={message.image} className={styles.image} />
+        ) : (
+          <Comment.Text>{message.content}</Comment.Text>
+        )}
       </Comment.Content>
     </Comment>
   );

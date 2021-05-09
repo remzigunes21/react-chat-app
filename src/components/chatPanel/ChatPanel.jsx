@@ -13,46 +13,106 @@ import {
 } from "semantic-ui-react";
 import Messages from "./Messages";
 
+const { uuid } = require("uuidv4");
+
 const ChatPanel = ({ currentChannel }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [content, setContent] = useState("");
-
-  const fileInputRef = useRef();
-
   useFirebaseConnect([
-    {
-      path: `messages/${currentChannel.key}`,
-      storeAs: "channelMessages",
-    },
+    { path: `/messages/${currentChannel.key}`, storeAs: "channelMessages" },
   ]);
-
-  const firebase = useFirebase();
-  const profile = useSelector((state) => state.firebase.profile);
-  const currentUserId = useSelector((state) => state.firebase.auth.uid);
   const channelMessages = useSelector(
     (state) => state.firebase.ordered.channelMessages
   );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const firebase = useFirebase();
+  const currentUserUid = useSelector((state) => state.firebase.auth.uid);
+  const profile = useSelector((state) => state.firebase.profile);
+
+  const [content, setContent] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    messagesEndRef.current.scrollIntoView({
+      behaviour: "smooth",
+      block: "end",
+    });
+  });
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     if (content !== "") {
       const message = {
         content,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         user: {
-          id: currentUserId,
+          id: currentUserUid,
           name: profile.name,
           avatar: profile.avatar,
         },
       };
+
+      // Send a message
       firebase.push(`messages/${currentChannel.key}`, message).then(() => {
         setContent("");
       });
     }
   };
 
-  const uploadMedia = (e) => {};
+  const sendMediaMessage = (url) => {
+    const message = {
+      image: url,
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      user: {
+        id: currentUserUid,
+        name: profile.name,
+        avatar: profile.avatar,
+      },
+    };
+    // Send a message
+    firebase.push(`messages/${currentChannel.key}`, message).then(() => {
+      console.log("finish");
+    });
+  };
+
+  const uploadMedia = (event) => {
+    const file = event.target.files[0];
+
+    if (file) {
+      const storageRef = firebase.storage().ref();
+      const fileRef = storageRef.child(`chat/public/${uuid()}.jpg`);
+      return fileRef
+        .put(file)
+        .then((snap) => {
+          fileRef.getDownloadURL().then((downloadURL) => {
+            sendMediaMessage(downloadURL);
+          });
+        })
+        .catch((err) => console.error("error uploading file", err));
+    }
+  };
+
+  const filterMessages = () => {
+    const regex = new RegExp(searchTerm, "gi");
+
+    const searchResults = [...channelMessages].reduce((acc, message) => {
+      if (
+        (message.value.content && message.value.content.match(regex)) ||
+        message.value.user.name.match(regex)
+      ) {
+        acc.push(message);
+      }
+
+      return acc;
+    }, []);
+
+    return searchResults;
+  };
+
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  const renderedMessages =
+    searchTerm !== "" ? filterMessages() : channelMessages;
 
   return (
     <>
@@ -60,20 +120,23 @@ const ChatPanel = ({ currentChannel }) => {
         <Header as="h3" floated="left">
           <span>
             <Icon name="hashtag" />
-            {currentChannel.name}
+            {currentChannel?.name}
           </span>
         </Header>
+
+        {/* Search Messages */}
         <Header as="h3" floated="right">
           <Input
             size="mini"
-            name="searchTerm"
             icon="search"
-            placeholder="Search..."
+            name="searchTerm"
+            placeholder="Mesajlarda ara.."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
           />
         </Header>
       </Segment>
+      {/* Message Area */}
       <Segment
         style={{ position: "fixed", top: 55, bottom: 70, width: "81%" }}
         basic
@@ -85,12 +148,16 @@ const ChatPanel = ({ currentChannel }) => {
             maxWidth: "100%",
           }}
         >
-          {channelMessages &&
-            channelMessages.map(({ key, value }) => (
+          {renderedMessages &&
+            renderedMessages.map(({ key, value }) => (
               <Messages key={key} message={value} />
             ))}
+
+          <div ref={messagesEndRef}></div>
         </Comment.Group>
-      </Segment>{" "}
+      </Segment>
+
+      {/* Send Message */}
       <Segment
         style={{
           position: "fixed",
@@ -100,7 +167,7 @@ const ChatPanel = ({ currentChannel }) => {
         }}
       >
         <Button icon onClick={() => fileInputRef.current.click()}>
-          <Icon name="send" />
+          <Icon name="add" />
           <input
             name="file"
             type="file"
@@ -118,7 +185,7 @@ const ChatPanel = ({ currentChannel }) => {
             placeholder={`#${currentChannel?.name} kanalına mesaj gönder`}
           />
         </Form>
-      </Segment>{" "}
+      </Segment>
     </>
   );
 };
